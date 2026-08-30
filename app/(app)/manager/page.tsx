@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusTag, Tag } from "@/components/ui/Tag";
 import { Table, Th, Td } from "@/components/ui/Table";
 import { Pagination } from "@/components/ui/Pagination";
+import { Seg } from "@/components/ui/Seg";
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|heic)$/i;
 
@@ -68,6 +69,7 @@ export default function ManagerPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [viewing, setViewing] = useState<Order | null>(null);
+  const [range, setRange] = useState<"week" | "month">("week");
 
   const technicianName = (id: string | null) => technicians.find((t) => t.id === id)?.name ?? "—";
 
@@ -91,14 +93,19 @@ export default function ManagerPage() {
   }
 
   async function loadKpi() {
-    const res = await fetch("/api/kpi/technician-summary");
+    const res = await fetch(`/api/kpi/technician-summary?range=${range}`);
     if (res.ok) setKpi(await res.json());
   }
 
   useEffect(() => {
     loadOrders();
-    loadKpi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    loadKpi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   const sortedOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
@@ -157,7 +164,17 @@ export default function ManagerPage() {
 
   return (
     <div className="flex flex-col gap-5.5 w-full pb-20">
-      <h2 className="text-2xl">This week</h2>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-2xl">{range === "week" ? "This week" : "This month"}</h2>
+        <Seg<"week" | "month">
+          options={[
+            { value: "week", label: "Weekly" },
+            { value: "month", label: "Monthly" },
+          ]}
+          value={range}
+          onChange={setRange}
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -199,7 +216,9 @@ export default function ManagerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="pt-4.5">
           <CardKicker className="mb-0.5">Jobs per technician</CardKicker>
-          <p className="text-[11px] text-black/45 mb-3.5">Completed jobs this week, by technician</p>
+          <p className="text-[11px] text-black/45 mb-3.5">
+            Completed jobs {range === "week" ? "this week" : "this month"}, by technician
+          </p>
           <div className="h-[190px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={leaderboard} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>

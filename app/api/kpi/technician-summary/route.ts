@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 function startOfWeek(now: Date) {
@@ -10,14 +10,22 @@ function startOfWeek(now: Date) {
   return monday;
 }
 
-export async function GET() {
+function startOfMonth(now: Date) {
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+export async function GET(req: NextRequest) {
   const admin = supabaseAdmin();
-  const monday = startOfWeek(new Date());
+  const rangeParam = req.nextUrl.searchParams.get("range");
+  const range = rangeParam === "month" ? "month" : "week";
+  const from = range === "month" ? startOfMonth(new Date()) : startOfWeek(new Date());
 
   const { data: logs, error } = await admin
     .from("service_logs")
     .select("technician_name, final_amount, completed_at")
-    .gte("completed_at", monday.toISOString());
+    .gte("completed_at", from.toISOString());
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -31,7 +39,7 @@ export async function GET() {
   const { data: postponements, error: postponeError } = await admin
     .from("postponements")
     .select("technician_name, postponed_at")
-    .gte("postponed_at", monday.toISOString());
+    .gte("postponed_at", from.toISOString());
 
   if (postponeError) {
     return NextResponse.json({ error: postponeError.message }, { status: 500 });
@@ -62,7 +70,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    range: "week",
+    range,
     totals: {
       jobs_completed: totalJobs,
       revenue: totalRevenue,
