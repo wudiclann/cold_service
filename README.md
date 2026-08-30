@@ -7,7 +7,7 @@ answer questions about the operational data or how to use the system.
 
 Built for the "Operations System + AI Challenge" programmer assessment.
 
-**Live demo:** _(link added after deploy)_
+**Live demo:** https://servicesejuk.vercel.app
 **Stack:** Next.js (App Router) · TypeScript · Supabase (Postgres + Storage) · Tailwind CSS v4 · OpenAI
 
 ---
