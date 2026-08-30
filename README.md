@@ -8,6 +8,7 @@ answer questions about the operational data or how to use the system.
 Built for the "Operations System + AI Challenge" programmer assessment.
 
 **Live demo:** https://servicesejuk.vercel.app
+
 **Stack:** Next.js (App Router) · TypeScript · Supabase (Postgres + Storage) · Tailwind CSS v4 · OpenAI
 
 ---
@@ -36,21 +37,27 @@ Built for the "Operations System + AI Challenge" programmer assessment.
 ## Screenshots
 
 **Role select (mock login)**
+
 ![Role select screen](docs/screenshots/landing.png)
 
 **Admin — order list**
+
 ![Admin orders table](docs/screenshots/admin-orders.png)
 
 **Admin — new order**
+
 ![New order dialog](docs/screenshots/admin-new-order-dialog.png)
 
 **Technician — job list (mobile)**
+
 ![Technician job list](docs/screenshots/technician-job-list.png)
 
 **Manager — KPI dashboard**
+
 ![Manager dashboard](docs/screenshots/manager-dashboard.png)
 
 **Manager — AI assistant**
+
 ![Ask AI widget](docs/screenshots/manager-ask-ai.png)
 
 ## Tech stack
@@ -247,6 +254,7 @@ npm run dev
 ## Self-assessment
 
 **Which module was easiest?**
+
 The Admin and Manager portals were the easiest to build. Both are
 fundamentally CRUD-and-dashboard workflows — create an order, view/filter a
 list, assign a technician, review a completed job — with a clear, linear
@@ -254,6 +262,7 @@ data flow and no unusual state to manage, so the implementation followed a
 straightforward, predictable pattern.
 
 **Which module was hardest?**
+
 The WhatsApp notification module was the most complex to do properly — a
 real implementation needs the Meta WhatsApp Business API and ideally a
 native mobile app rather than a web deep link, which is a significant scope
@@ -263,6 +272,7 @@ the core order lifecycle (Admin → Technician → Manager) and the AI module
 solid instead, rather than spreading effort thin across every module.
 
 **What would you improve in a real production system?**
+
 I'd invest in the AI module the most. Right now it's a single-turn,
 read-only assistant — it classifies a question, runs one scoped query, and
 formats an answer. In a real production system I'd add a memory layer so it
@@ -273,6 +283,7 @@ answer questions about the data — with the same scoped, server-validated
 trust boundary the read path already has.
 
 **How did you use AI tools while building this project?**
+
 I started by defining the requirements and deciding on the architecture and
 tech stack, then used Claude Design to design and iterate on the frontend
 before touching any code. From there, Claude Code handled implementation
