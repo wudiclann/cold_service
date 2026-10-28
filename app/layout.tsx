@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { RoleProvider } from "@/lib/role-context";
 import { ToastProvider } from "@/lib/toast-context";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
+// Bundled in app/fonts so the build never depends on fetching them from Google
+// (IBM Plex Sans is a variable font with a width axis, which Vercel's font loader rejects).
+const plex = localFont({
+  src: "./fonts/IBMPlexSans-Variable.woff2",
+  weight: "100 700",
+  style: "normal",
   variable: "--font-plex",
-  weight: ["400", "500", "600"],
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/IBMPlexMono-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexMono-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-plex-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
