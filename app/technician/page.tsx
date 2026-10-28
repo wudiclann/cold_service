@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
   CheckCircle2,
   ChevronLeft,
-  Inbox,
   MapPin,
   MessageCircle,
-  Paperclip,
   Plus,
   X,
 } from "lucide-react";
@@ -18,14 +16,19 @@ import { useTechnicians } from "@/lib/useTechnicians";
 import { useToast } from "@/lib/toast-context";
 import { supabase } from "@/lib/supabase/client";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
-import type { Order, ServiceLog } from "@/lib/types";
-import { Blueprint } from "@/components/ui/Blueprint";
+import { fmtDate, fmtDateTime } from "@/lib/format";
+import { isOverdue, type Order, type Role, type ServiceLog } from "@/lib/types";
+import { SetupNotice } from "@/components/SetupNotice";
+import { Brand } from "@/components/shell/Brand";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Dialog } from "@/components/ui/Dialog";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Tag, StatusTag } from "@/components/ui/Tag";
 import { Field } from "@/components/ui/Field";
 import { Input, Select, Textarea } from "@/components/ui/Input";
+import { Money } from "@/components/ui/Money";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { StatusTag, Tag } from "@/components/ui/Tag";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -35,8 +38,9 @@ const MAX_ATTACHMENTS = 6;
 
 export default function TechnicianPage() {
   const router = useRouter();
-  const { role, technicianName, ready, setTechnicianName } = useRole();
-  const { technicians } = useTechnicians();
+  const { role, technicianName, ready, setRole, setTechnicianName } = useRole();
+  const leaving = useRef(false);
+  const { technicians, loading: techLoading } = useTechnicians();
   const { showToast } = useToast();
 
   const [jobs, setJobs] = useState<Order[]>([]);
@@ -55,9 +59,25 @@ export default function TechnicianPage() {
   const [newDueDate, setNewDueDate] = useState("");
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || leaving.current) return;
     if (role !== "Technician") router.replace("/");
   }, [ready, role, router]);
+
+  // Back to the Admin/Manager panel the user came from (remembered by the app layout);
+  // with none remembered (signed in straight as technician), default to Admin.
+  // The role changes first, so the guard above must not bounce us to "/" mid-navigation.
+  function backToPortal() {
+    let last: string | null = null;
+    try {
+      last = sessionStorage.getItem("cold-service-last-panel");
+    } catch {
+      // storage unavailable — use the default
+    }
+    const panel: Role = last === "Manager" ? "Manager" : "Admin";
+    leaving.current = true;
+    setRole(panel);
+    router.push(panel === "Admin" ? "/admin" : "/manager");
+  }
 
   useEffect(() => {
     if (!technicianName && technicians.length > 0) {
@@ -72,9 +92,14 @@ export default function TechnicianPage() {
   }
 
   const technicianId = technicians.find((t) => t.name === technicianName)?.id;
+  const techNames = technicians.map((t) => t.name);
 
   async function loadJobs() {
-    if (!technicianId) return;
+    if (!technicianId) {
+      // No technician to load for: once the list has loaded (and is empty) there is nothing to wait for.
+      if (!techLoading) setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from("orders")
@@ -89,7 +114,7 @@ export default function TechnicianPage() {
   useEffect(() => {
     loadJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [technicianId]);
+  }, [technicianId, techLoading]);
 
   async function openJob(order: Order) {
     setError(null);
@@ -184,297 +209,339 @@ export default function TechnicianPage() {
 
   if (!ready || role !== "Technician") return null;
 
-  return (
-    <div className="flex-1 flex flex-col items-center gap-3 p-5">
-      <div className="w-full max-w-sm flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => router.push("/")}
-          className="flex items-center gap-0.5 text-xs text-black/45 hover:text-accent-700 cursor-pointer shrink-0"
-        >
-          <ChevronLeft size={13} strokeWidth={1.5} />
-          Switch role
-        </button>
-        {technicians.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] text-black/45 shrink-0">Viewing as</label>
-            <Select
-              className="min-h-0 py-1 text-xs"
-              value={technicianName ?? ""}
-              onChange={(e) => switchTechnician(e.target.value)}
-            >
-              {technicians.map((t) => (
-                <option key={t.id} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
-      </div>
-      <Blueprint className="w-full max-w-sm min-h-[640px] flex flex-col bg-bg">
-        <div className="flex justify-between items-baseline px-4.5 py-4 border-b border-divider">
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-black/45">Logged in as</div>
-            <div className="font-heading font-semibold text-[17px]">{technicianName ?? "—"}</div>
-          </div>
-          <Tag variant="outline">Technician</Tag>
-        </div>
+  const finalAmount = selected ? Number(selected.quoted_price) + Number(extraCharges || 0) : 0;
+  const newJobs = jobs.filter((j) => j.status === "Assigned").length;
 
-        {!selected && (
-          <div className="flex flex-col gap-3 p-4.5 flex-1">
-            <div className="text-[11px] uppercase tracking-wide text-black/45">My jobs</div>
-            {loading &&
-              Array.from({ length: 2 }).map((_, i) => (
-                <div key={`skeleton-${i}`} className="border border-divider p-4 flex flex-col gap-2">
-                  <div className="flex justify-between">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                  <Skeleton className="h-3.5 w-32" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-9 w-full mt-1.5" />
-                </div>
-              ))}
-            {!loading && jobs.length === 0 && (
-              <div className="flex flex-col items-center gap-1.5 py-8 text-black/40">
-                <Inbox size={20} strokeWidth={1.5} className="text-black/25" />
-                <p className="text-xs">No assigned jobs right now.</p>
-              </div>
-            )}
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className={`border p-4 flex flex-col gap-2 ${
-                  job.status === "Assigned" ? "border-accent" : "border-divider"
-                }`}
+  return (
+    <div className="h-dvh flex flex-col items-center bg-ground">
+      <div className="w-full max-w-[460px] flex-1 min-h-0 flex flex-col sm:py-3">
+        <header className="shrink-0 flex items-center justify-between gap-3 h-12 px-4 sm:px-1">
+          <Brand />
+          <button
+            type="button"
+            onClick={backToPortal}
+            className="group flex items-center h-9 text-sm text-muted hover:text-ink cursor-pointer"
+          >
+            <span className="flex items-center gap-0.5 border-b border-transparent pb-px group-hover:border-current">
+              <ChevronLeft size={16} strokeWidth={1.5} />
+              Back to portal
+            </span>
+          </button>
+        </header>
+
+        <SetupNotice className="rounded-lg border mb-2" />
+
+        <div className="flex-1 min-h-0 flex flex-col bg-surface border-t sm:border border-edge sm:rounded-2xl overflow-hidden mt-1">
+          <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-rule">
+            {technicianName && <Avatar name={technicianName} names={techNames} size={36} />}
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate">{technicianName ?? "—"}</div>
+              <div className="text-xs text-muted">Technician</div>
+            </div>
+            {technicians.length > 0 && (
+              <Select
+                aria-label="Viewing as"
+                className="!h-8 !w-auto max-w-[150px]"
+                value={technicianName ?? ""}
+                onChange={(e) => switchTechnician(e.target.value)}
               >
-                <div className="flex justify-between">
-                  <span className="font-heading font-semibold text-base">{job.order_no}</span>
-                  <StatusTag status={job.status} />
-                </div>
-                <div className="text-sm">{job.customer_name}</div>
-                <div className="flex items-center gap-1 text-xs text-black/55">
-                  <MapPin size={12} strokeWidth={1.5} className="shrink-0" />
-                  {job.address} · {job.service_type}
-                </div>
-                {job.problem_description && (
-                  <div className="text-xs text-black/55 line-clamp-2">
-                    Problem: {job.problem_description}
+                {technicians.map((t) => (
+                  <option key={t.id} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </div>
+
+          {!selected && (
+            <div className="relative flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              <div>
+                <h1 className="text-[22px] leading-7">My jobs</h1>
+                <p className="text-sm text-muted mt-1">
+                  {loading
+                    ? "Loading jobs…"
+                    : jobs.length === 0
+                      ? "No jobs assigned to you right now."
+                      : newJobs > 0
+                        ? `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}, ${newJobs} not started yet.`
+                        : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"} in progress.`}
+                </p>
+              </div>
+
+              {loading &&
+                Array.from({ length: 2 }).map((_, i) => (
+                  <div key={`skeleton-${i}`} className="rounded-lg border border-edge p-4 flex flex-col gap-2.5">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <Skeleton className="h-4 w-44" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-11 w-full mt-1" />
                   </div>
-                )}
-                <div className="flex items-center gap-1 text-xs text-black/45">
-                  <CalendarClock size={12} strokeWidth={1.5} />
-                  Due {new Date(job.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </div>
-                <Button
-                  variant={job.status === "Assigned" ? "primary" : "secondary"}
-                  block
-                  className="mt-1.5 !py-3 text-sm"
-                  onClick={() => openJob(job)}
+                ))}
+
+              {jobs.map((job) => (
+                <article
+                  key={job.id}
+                  className={`rounded-lg flex flex-col gap-2 ${
+                    job.status === "Assigned"
+                      ? "bg-surface border-2 border-ink p-[15px]"
+                      : "border border-edge p-4"
+                  }`}
                 >
-                  {job.status === "Assigned" ? "Open job" : "Continue job"}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-base truncate">{job.customer_name}</h2>
+                      <div className="text-xs text-muted">
+                        <span className="font-mono">{job.order_no}</span> · {job.service_type}
+                      </div>
+                    </div>
+                    <StatusTag status={job.status} />
+                  </div>
+                  <div className="flex items-start gap-1.5 text-sm text-muted">
+                    <MapPin size={14} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+                    {job.address}
+                  </div>
+                  {job.problem_description && (
+                    <p className="text-sm line-clamp-2">{job.problem_description}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 text-sm text-muted">
+                    <CalendarClock size={14} strokeWidth={1.5} />
+                    Due {fmtDate(job.due_date)}
+                    {isOverdue(job) && <Tag variant="neg">Overdue</Tag>}
+                  </div>
+                  <Button
+                    variant={job.status === "Assigned" ? "primary" : "secondary"}
+                    size="lg"
+                    block
+                    className="mt-1.5"
+                    onClick={() => openJob(job)}
+                  >
+                    {job.status === "Assigned" ? "Open job" : "Continue job"}
+                  </Button>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {selected && !completedLog && (
+            <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col">
+              <div className="relative flex-1 overflow-y-auto">
+                <div className="px-4 py-3 border-b border-rule">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="group flex items-center h-9 text-sm text-muted hover:text-ink cursor-pointer"
+                      onClick={backToList}
+                    >
+                      <span className="flex items-center gap-0.5 border-b border-transparent pb-px group-hover:border-current">
+                        {/* the chevron has about 6px of empty space on its left; pull it out so the arrow lines up with the title */}
+                        <ChevronLeft size={16} strokeWidth={1.5} className="-ml-1.5" />
+                        Back
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="group flex items-center h-9 text-sm font-medium cursor-pointer"
+                      onClick={openPostponeDialog}
+                    >
+                      <span className="flex items-center gap-1.5 border-b border-transparent pb-px group-hover:border-current">
+                        <CalendarClock size={14} strokeWidth={1.5} />
+                        Postpone job
+                      </span>
+                    </button>
+                  </div>
+                  <h1 className="text-lg leading-6 mt-1">{selected.customer_name}</h1>
+                  <div className="text-xs text-muted mt-0.5">
+                    <span className="font-mono">{selected.order_no}</span> · {selected.service_type}
+                  </div>
+                  <div className="flex items-start gap-1.5 text-sm text-muted mt-2">
+                    <MapPin size={14} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+                    {selected.address}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-muted mt-1">
+                    <CalendarClock size={14} strokeWidth={1.5} />
+                    Due {fmtDate(selected.due_date)}
+                    {isOverdue(selected) && <Tag variant="neg">Overdue</Tag>}
+                  </div>
+                </div>
+
+                <div className="p-4 flex flex-col gap-4">
+                  {(selected.problem_description || selected.admin_notes) && (
+                    <div className="rounded-lg bg-raised p-3.5 flex flex-col gap-3 text-sm">
+                      {selected.problem_description && (
+                        <div>
+                          <div className="text-muted mb-0.5">Problem reported</div>
+                          <div>{selected.problem_description}</div>
+                        </div>
+                      )}
+                      {selected.admin_notes && (
+                        <div>
+                          <div className="text-muted mb-0.5">Admin notes</div>
+                          <div>{selected.admin_notes}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Field label="Work done">
+                    <Textarea
+                      value={workDone}
+                      onChange={(e) => setWorkDone(e.target.value)}
+                      placeholder="What did you do on site?"
+                    />
+                  </Field>
+
+                  <Field label="Extra charges (RM)">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      className="!h-11"
+                      value={extraCharges}
+                      onChange={(e) => setExtraCharges(e.target.value)}
+                    />
+                  </Field>
+
+                  <dl className="rounded-lg border border-edge text-sm">
+                    <div className="flex justify-between px-3.5 py-2.5">
+                      <dt className="text-muted">Quoted</dt>
+                      <dd>
+                        <Money value={selected.quoted_price} />
+                      </dd>
+                    </div>
+                    <div className="flex justify-between px-3.5 py-2.5 border-t border-rule">
+                      <dt className="text-muted">Extra charges</dt>
+                      <dd>
+                        <Money value={Number(extraCharges || 0)} />
+                      </dd>
+                    </div>
+                    <div className="flex justify-between px-3.5 py-2.5 border-t border-edge font-medium">
+                      <dt>Final amount</dt>
+                      <dd>
+                        <Money value={finalAmount} />
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div>
+                    <div className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                      Attachments
+                      <span className="font-normal text-muted">
+                        {files.length} of {MAX_ATTACHMENTS}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {files.map((f, i) => (
+                        <div
+                          key={i}
+                          className="relative size-16 rounded-md border border-edge bg-raised flex items-center justify-center text-[11px] p-1 text-center break-all overflow-hidden"
+                        >
+                          {f.name}
+                          <button
+                            type="button"
+                            aria-label={`Remove ${f.name}`}
+                            className="absolute top-0.5 right-0.5 size-5 grid place-items-center rounded-full bg-ink text-white cursor-pointer"
+                            onClick={() => setFiles(files.filter((_, fi) => fi !== i))}
+                          >
+                            <X size={11} strokeWidth={2} />
+                          </button>
+                        </div>
+                      ))}
+                      {files.length < MAX_ATTACHMENTS && (
+                        <label className="size-16 rounded-md border border-dashed border-control grid place-items-center text-muted hover:text-ink hover:bg-raised cursor-pointer">
+                          <span className="sr-only">Add attachment</span>
+                          <Plus size={20} strokeWidth={1.5} />
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,video/*,application/pdf"
+                            className="hidden"
+                            onChange={handleFilesChange}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  <Field label="Remarks">
+                    <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+                  </Field>
+
+                  {error && <p className="text-sm text-negative">{error}</p>}
+                </div>
+              </div>
+
+              <div className="shrink-0 p-4 border-t border-edge bg-surface">
+                <Button type="submit" variant="primary" size="lg" block disabled={submitting}>
+                  {submitting ? "Submitting…" : "Submit and mark Job Done"}
                 </Button>
               </div>
-            ))}
-          </div>
-        )}
-
-        {selected && !completedLog && (
-          <>
-            <div className="px-4.5 py-4 border-b border-divider">
-              <div className="flex items-center justify-between">
-                <button
-                  className="flex items-center gap-0.5 text-xs text-black/45 cursor-pointer"
-                  onClick={backToList}
-                >
-                  <ChevronLeft size={13} strokeWidth={1.5} />
-                  Back
-                </button>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-xs text-accent-700 hover:underline cursor-pointer"
-                  onClick={openPostponeDialog}
-                >
-                  <CalendarClock size={13} strokeWidth={1.5} />
-                  Postpone job
-                </button>
-              </div>
-              <div className="font-heading font-semibold text-lg mt-1">
-                {selected.order_no} · {selected.service_type}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-black/55">
-                <MapPin size={12} strokeWidth={1.5} className="shrink-0" />
-                {selected.customer_name} · {selected.address}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-black/45 mt-0.5">
-                <CalendarClock size={12} strokeWidth={1.5} />
-                Due{" "}
-                {new Date(selected.due_date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 p-4.5 flex-1 overflow-auto">
-              {(selected.problem_description || selected.admin_notes) && (
-                <div className="border border-divider p-2.5 flex flex-col gap-2">
-                  {selected.problem_description && (
-                    <div className="text-xs">
-                      <div className="text-black/45 mb-0.5">Problem reported</div>
-                      <div>{selected.problem_description}</div>
-                    </div>
-                  )}
-                  {selected.admin_notes && (
-                    <div className="text-xs">
-                      <div className="text-black/45 mb-0.5">Admin notes</div>
-                      <div>{selected.admin_notes}</div>
-                    </div>
-                  )}
-                </div>
-              )}
-              <Field label="Work done">
-                <Textarea value={workDone} onChange={(e) => setWorkDone(e.target.value)} />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Quoted">
-                  <Input
-                    disabled
-                    value={`RM ${Number(selected.quoted_price).toFixed(0)}`}
-                    className="bg-neutral-100 text-black/60"
-                  />
-                </Field>
-                <Field label="Extra charges">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={extraCharges}
-                    onChange={(e) => setExtraCharges(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <Field
-                label={
-                  <span className="inline-flex items-center gap-1">
-                    <Paperclip size={11} strokeWidth={1.5} />
-                    {`Attachments (up to ${MAX_ATTACHMENTS})`}
-                  </span>
-                }
-              >
-                <div className="flex gap-2 flex-wrap">
-                  {files.map((f, i) => (
-                    <div
-                      key={i}
-                      className="relative w-13 h-13 border border-divider flex items-center justify-center text-[9px] p-1 text-center break-all bg-surface"
-                    >
-                      {f.name}
-                      <button
-                        type="button"
-                        className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center bg-ink text-bg cursor-pointer"
-                        onClick={() => setFiles(files.filter((_, fi) => fi !== i))}
-                      >
-                        <X size={9} strokeWidth={2} />
-                      </button>
-                    </div>
-                  ))}
-                  {files.length < MAX_ATTACHMENTS && (
-                    <label className="w-13 h-13 border border-dashed border-divider flex items-center justify-center text-accent cursor-pointer">
-                      <Plus size={18} strokeWidth={1.5} />
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*,video/*,application/pdf"
-                        className="hidden"
-                        onChange={handleFilesChange}
-                      />
-                    </label>
-                  )}
-                </div>
-              </Field>
-              <Field label="Remarks">
-                <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-              </Field>
-              <div className="border border-divider p-2.5 text-xs text-black/55">
-                Final amount = quoted + extra charges, computed on submit
-              </div>
-              {error && <p className="text-xs text-red-700">{error}</p>}
             </form>
-            <div className="px-4.5 py-4 border-t border-divider">
-              <Button
-                variant="primary"
-                marks
-                block
-                className="!py-3.5"
-                disabled={submitting}
-                onClick={handleSubmit}
-              >
-                {submitting ? "Submitting…" : "Submit · mark Job Done"}
-              </Button>
-            </div>
-          </>
-        )}
+          )}
 
-        {selected && completedLog && (
-          <div className="flex flex-col gap-3.5 p-5 flex-1">
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-accent-700">
-              <CheckCircle2 size={13} strokeWidth={1.5} />
-              Job Done
-            </div>
-            <h4 className="text-lg">{selected.order_no} completed</h4>
-            <p className="text-sm text-black/60">
-              Final amount:{" "}
-              <span className="font-semibold text-ink">RM {Number(completedLog.final_amount).toFixed(0)}</span>
-            </p>
-            <a
-              href={buildWhatsAppLink({
-                phone: selected.phone,
-                customerName: selected.customer_name,
-                orderNo: selected.order_no,
-                technicianName: technicianName ?? "",
-                completedAt: new Date(completedLog.completed_at).toLocaleString(),
-              })}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Button variant="primary" marks block className="!py-3">
-                <MessageCircle size={15} strokeWidth={1.5} />
+          {selected && completedLog && (
+            <div className="relative flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-positive">
+                <CheckCircle2 size={18} strokeWidth={1.75} />
+                Job Done
+              </div>
+              <div>
+                <h1 className="text-[22px] leading-7">
+                  <span className="font-mono text-lg">{selected.order_no}</span> completed
+                </h1>
+                <p className="text-sm text-muted mt-1">
+                  Submitted {fmtDateTime(completedLog.completed_at)}. It now waits for the manager’s review.
+                </p>
+              </div>
+              <div className="rounded-lg bg-raised px-4 py-3.5">
+                <div className="text-sm text-muted">Final amount</div>
+                <div className="text-[28px] leading-9">
+                  <Money value={completedLog.final_amount} />
+                </div>
+              </div>
+              <a
+                href={buildWhatsAppLink({
+                  phone: selected.phone,
+                  customerName: selected.customer_name,
+                  orderNo: selected.order_no,
+                  technicianName: technicianName ?? "",
+                  completedAt: new Date(completedLog.completed_at).toLocaleString(),
+                })}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 h-11 rounded-md bg-accent text-white text-[15px] font-medium hover:bg-[#0066b8]"
+              >
+                <MessageCircle size={16} strokeWidth={1.5} />
                 Send WhatsApp update
+              </a>
+              <Button size="lg" block onClick={backToList}>
+                Back to job list
               </Button>
-            </a>
-            <Button variant="secondary" block onClick={backToList}>
-              Back to job list
-            </Button>
-          </div>
-        )}
-      </Blueprint>
+            </div>
+          )}
+        </div>
+      </div>
 
       <Dialog open={postponeOpen} onClose={() => setPostponeOpen(false)} title="Postpone job">
         {selected && (
-          <div className="flex flex-col gap-3.5">
-            <p className="text-xs text-black/55">
-              {selected.order_no} is currently due{" "}
-              {new Date(selected.due_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
-              . Pick a new date.
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted">
+              <span className="font-mono">{selected.order_no}</span> is due {fmtDate(selected.due_date)}. Pick a new
+              date.
             </p>
             <Field label="New date">
-              <Input
-                type="date"
+              <DatePicker
                 min={todayIso()}
+                className="!h-11"
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
               />
             </Field>
-            <Button
-              variant="primary"
-              marks
-              block
-              disabled={postponing || !newDueDate}
-              onClick={handlePostpone}
-            >
+            <Button variant="primary" size="lg" block disabled={postponing || !newDueDate} onClick={handlePostpone}>
               {postponing ? "Postponing…" : "Confirm postpone"}
             </Button>
           </div>

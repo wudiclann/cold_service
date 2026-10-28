@@ -11,7 +11,7 @@ export function Table({ className = "", children, ...rest }: TableHTMLAttributes
 export function Th({ className = "", children, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={`text-left text-[10.5px] tracking-wider uppercase text-black/50 px-2 py-2 border-b border-divider ${className}`}
+      className={`text-left text-xs font-normal text-muted px-3 h-10 border-b border-edge whitespace-nowrap first:pl-[var(--edge,1.5rem)] last:pr-[var(--edge,1.5rem)] ${className}`}
       {...rest}
     >
       {children}
@@ -21,7 +21,10 @@ export function Th({ className = "", children, ...rest }: ThHTMLAttributes<HTMLT
 
 export function Td({ className = "", children, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={`px-2 py-2 border-b border-black/8 ${className}`} {...rest}>
+    <td
+      className={`px-3 h-12 border-b border-rule align-middle first:pl-[var(--edge,1.5rem)] last:pr-[var(--edge,1.5rem)] ${className}`}
+      {...rest}
+    >
       {children}
     </td>
   );

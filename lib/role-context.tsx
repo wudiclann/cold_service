@@ -14,7 +14,7 @@ interface RoleContextValue extends RoleState {
   setTechnicianName: (name: string | null) => void;
 }
 
-const STORAGE_KEY = "sejuk-role";
+const STORAGE_KEY = "cold-service-role";
 const RoleContext = createContext<RoleContextValue | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {

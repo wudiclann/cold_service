@@ -19,7 +19,7 @@ export async function formatAnswer(question: string, intent: AiIntent, result: Q
       messages: [
         {
           role: "system",
-          content: `You are a help assistant for the Sejuk Sejuk Ops app, answering a user's question about how it works or how to use it. Answer using ONLY the reference below.
+          content: `You are a help assistant for the Cold Service Ops app, answering a user's question about how it works or how to use it. Answer using ONLY the reference below.
 
 - For broad questions ("tell me about the system", "what is this app", "what can you do here"), give a helpful summary covering the roles and the overall order workflow — this is a normal, answerable question, not a reason to hedge.
 - For specific how-to questions, be concise and practical, pointing to the exact button/screen/role involved.

@@ -2,38 +2,35 @@ import { Button } from "./Button";
 
 export function Pagination({
   page,
-  pageCount,
+  pageSize,
+  total,
   onChange,
 }: {
   page: number;
-  pageCount: number;
+  pageSize: number;
+  total: number;
   onChange: (page: number) => void;
 }) {
-  if (pageCount <= 1) return null;
+  if (total === 0) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="flex items-center justify-between gap-3 pt-1">
-      <span className="text-xs text-black/50">
-        Page {page} of {pageCount}
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-muted tabular-nums">
+        {from}–{to} of {total}
       </span>
-      <div className="flex gap-1.5">
-        <Button
-          variant="secondary"
-          className="!px-2.5 !py-1 text-xs"
-          disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
-        >
-          Prev
-        </Button>
-        <Button
-          variant="secondary"
-          className="!px-2.5 !py-1 text-xs"
-          disabled={page >= pageCount}
-          onClick={() => onChange(page + 1)}
-        >
-          Next
-        </Button>
-      </div>
+      {pageCount > 1 && (
+        <div className="flex gap-2">
+          <Button disabled={page <= 1} onClick={() => onChange(page - 1)}>
+            Previous
+          </Button>
+          <Button disabled={page >= pageCount} onClick={() => onChange(page + 1)}>
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

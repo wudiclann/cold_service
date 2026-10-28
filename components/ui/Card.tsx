@@ -1,23 +1,31 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 export function Card({ className = "", children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={`bg-transparent border border-divider rounded-none p-5 ${className}`}
-      {...rest}
-    >
+    <div className={`bg-surface border border-edge rounded-lg ${className}`} {...rest}>
       {children}
     </div>
   );
 }
 
-export function CardKicker({ className = "", children, ...rest }: HTMLAttributes<HTMLDivElement>) {
+export function CardHeader({
+  title,
+  note,
+  right,
+  className = "",
+}: {
+  title: string;
+  note?: string;
+  right?: ReactNode;
+  className?: string;
+}) {
   return (
-    <div
-      className={`text-[10px] uppercase tracking-widest text-accent-700 mb-2.5 ${className}`}
-      {...rest}
-    >
-      {children}
+    <div className={`flex items-start justify-between gap-3 px-5 pt-4 pb-3 ${className}`}>
+      <div className="min-w-0">
+        <h2 className="text-base">{title}</h2>
+        {note && <p className="text-xs text-muted mt-0.5">{note}</p>}
+      </div>
+      {right}
     </div>
   );
 }

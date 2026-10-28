@@ -1,56 +1,65 @@
 @import "tailwindcss";
 
+/*
+  Neutral grey sidebar, white page. One accent: VS Code blue.
+  Depth comes from one tone step and 1px edges. No shadow on anything at rest.
+  Colour goes on actions, data and status; chrome stays grey.
+*/
 @theme {
-  --color-bg: #f2f2f3;
-  --color-surface: #e9e9ea;
-  --color-ink: #1d1f20;
+  --color-ground: #f3f3f3;
+  --color-surface: #ffffff;
+  --color-raised: #f8f8f8;
+  --color-active: #e4e4e6;
+  --color-edge: #e5e5e5;
+  --color-rule: #f0f0f0;
+  --color-control: #c8c8c8;
+  --color-ink: #131416;
+  --color-muted: #5f6368;
+  --color-faint: #6b6b6b;
 
-  --color-accent: #5980a6;
-  --color-accent-100: #eef6ff;
-  --color-accent-200: #d6ebff;
-  --color-accent-300: #b5d9fd;
-  --color-accent-400: #94bce3;
-  --color-accent-500: #749dc4;
-  --color-accent-600: #597ea3;
-  --color-accent-700: #416180;
-  --color-accent-800: #2c455d;
-  --color-accent-900: #1d2d3d;
+  --color-accent: #007acc;
+  --color-accent-soft: #e6f2fb;
+  --color-chart: #007acc;
+  --color-positive: #1e7b4f;
+  --color-negative: #c4242a;
 
-  --color-neutral-100: #f5f5f8;
-  --color-neutral-200: #e7e7ea;
-  --color-neutral-300: #d4d4d7;
-  --color-neutral-400: #b7b7ba;
-  --color-neutral-500: #98989b;
-  --color-neutral-600: #7a7a7d;
-  --color-neutral-700: #5d5d60;
-  --color-neutral-800: #424244;
-  --color-neutral-900: #2b2b2d;
+  --color-pill-neutral-bg: #ececec;
+  --color-pill-neutral-ink: #353535;
+  --color-pill-info-bg: #e3f0fa;
+  --color-pill-info-ink: #0b4a78;
+  --color-pill-yellow-bg: #fff3bf;
+  --color-pill-yellow-ink: #5c4300;
+  --color-pill-purple-bg: #efe6fb;
+  --color-pill-purple-ink: #4a2a7d;
+  --color-pill-pos-bg: #dcfae5;
+  --color-pill-pos-ink: #04250e;
+  --color-pill-neg-bg: #ffedea;
+  --color-pill-neg-ink: #831c1e;
 
-  --color-divider: rgba(29, 31, 32, 0.16);
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
-  --font-heading: var(--font-barlow-condensed), system-ui, sans-serif;
-  --font-body: var(--font-barlow), system-ui, sans-serif;
+  --radius-sheet: 16px;
+}
 
-  --radius-none: 0px;
+html,
+body {
+  background-color: var(--color-ground);
 }
 
 body {
-  background-color: var(--color-bg);
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--color-ink) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 4%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
   color: var(--color-ink);
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-heading);
   font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 :focus {
@@ -61,53 +70,53 @@ h4 {
   outline-offset: 2px;
 }
 ::selection {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
-/* — blueprint corner registration marks — */
-.corner-mark {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  color: color-mix(in srgb, var(--color-ink) 55%, transparent);
-  pointer-events: none;
-}
-.corner-mark::before,
-.corner-mark::after {
-  content: "";
-  position: absolute;
-  background: currentColor;
-}
-.corner-mark::before {
-  left: 5px;
-  top: 0;
-  width: 1px;
-  height: 100%;
-}
-.corner-mark::after {
-  top: 5px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-}
-.corner-mark.tl {
-  top: -6px;
-  left: -6px;
-}
-.corner-mark.tr {
-  top: -6px;
-  right: -6px;
-}
-.corner-mark.bl {
-  bottom: -6px;
-  left: -6px;
-}
-.corner-mark.br {
-  bottom: -6px;
-  right: -6px;
+/*
+  Thin, quiet scrollbars everywhere. Inside @layer base so a utility such as the tab row's
+  [scrollbar-width:none] still wins. Chrome/Edge: styled thumb, no arrow buttons.
+  Firefox (no ::-webkit-scrollbar): the standard thin scrollbar.
+*/
+@layer base {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c4c4c4;
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #c4c4c4 transparent;
+    }
+  }
 }
 
-/* — motion — */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-faint);
+}
+
+/* — motion: feedback only — */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -119,16 +128,6 @@ h4 {
 @keyframes panel-in {
   from {
     opacity: 0;
-    transform: scale(0.97) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-@keyframes toast-in {
-  from {
-    opacity: 0;
     transform: translateY(6px);
   }
   to {
@@ -136,8 +135,21 @@ h4 {
     transform: translateY(0);
   }
 }
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

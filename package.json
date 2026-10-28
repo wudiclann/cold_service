@@ -1,5 +1,5 @@
 {
-  "name": "service_sejuk",
+  "name": "cold_service",
   "version": "0.1.0",
   "private": true,
   "scripts": {

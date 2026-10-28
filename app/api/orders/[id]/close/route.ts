@@ -28,7 +28,7 @@ export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await recordTransition(admin, id, order.status, "Closed", "Manager");
+  await recordTransition(admin, id, order.status, "Closed", "Admin");
 
   return NextResponse.json({ ok: true });
 }

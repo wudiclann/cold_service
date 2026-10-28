@@ -1,20 +1,14 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 const base =
-  "w-full min-h-9 px-2.5 py-1.5 text-sm text-ink bg-surface border border-divider rounded-none hover:border-black/45 focus-visible:border-accent";
+  "w-full h-10 px-3 text-sm text-ink bg-surface border border-control rounded-md hover:border-muted focus-visible:border-accent focus-visible:outline-accent disabled:bg-raised disabled:text-muted disabled:cursor-not-allowed";
 
 export function Input({ className = "", ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`${base} ${className}`} {...rest} />;
 }
 
 export function Textarea({ className = "", ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={`${base} resize-y min-h-[70px] ${className}`} {...rest} />;
+  return <textarea className={`${base} h-auto py-2 resize-y min-h-24 ${className}`} {...rest} />;
 }
 
-export function Select({ className = "", children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select className={`${base} ${className}`} {...rest}>
-      {children}
-    </select>
-  );
-}
+export { Select } from "./Select";

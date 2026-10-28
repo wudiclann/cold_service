@@ -8,24 +8,33 @@ export function Seg<T extends string>({
   value,
   onChange,
   className = "",
+  label,
 }: {
   options: SegOption<T>[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  label?: string;
 }) {
   return (
-    <div className={`inline-flex border border-divider rounded-none overflow-hidden ${className}`}>
-      {options.map((opt, i) => {
+    <div
+      role="group"
+      aria-label={label}
+      className={`inline-flex gap-0.5 p-0.5 bg-active rounded-lg ${className}`}
+    >
+      {options.map((opt) => {
         const active = opt.value === value;
         return (
           <button
             key={opt.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(opt.value)}
-            className={`flex-1 px-3 py-1.5 text-[13px] font-heading font-semibold text-center cursor-pointer ${
-              i > 0 ? "border-l border-divider" : ""
-            } ${active ? "bg-accent text-bg" : "text-ink hover:bg-black/5"}`}
+            className={`flex-1 h-7 px-3 text-sm rounded-md cursor-pointer transition-colors ${
+              active
+                ? "bg-surface text-ink font-medium border border-edge"
+                : "border border-transparent text-muted hover:text-ink"
+            }`}
           >
             {opt.label}
           </button>

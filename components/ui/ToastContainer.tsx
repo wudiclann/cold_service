@@ -9,28 +9,29 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 w-[300px]">
+    <div
+      role="status"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 w-[min(380px,calc(100vw-32px))]"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}
-          style={{ animation: "toast-in 180ms ease-out" }}
-          className={`flex items-start gap-2 border px-3 py-2.5 text-xs shadow-md bg-bg ${
-            t.variant === "error" ? "border-red-300" : "border-divider"
-          }`}
+          style={{ animation: "panel-in 160ms ease-out" }}
+          className="flex items-start gap-2.5 rounded-lg bg-ink text-white px-3.5 py-3 text-sm shadow-lg"
         >
           {t.variant === "error" ? (
-            <XCircle size={15} className="text-red-600 shrink-0 mt-0.5" strokeWidth={1.5} />
+            <XCircle size={16} className="text-[#ff8a85] shrink-0 mt-0.5" strokeWidth={1.75} />
           ) : (
-            <CheckCircle2 size={15} className="text-accent-700 shrink-0 mt-0.5" strokeWidth={1.5} />
+            <CheckCircle2 size={16} className="text-[#6fdca0] shrink-0 mt-0.5" strokeWidth={1.75} />
           )}
           <span className="flex-1">{t.message}</span>
           <button
             type="button"
             aria-label="Dismiss"
             onClick={() => dismissToast(t.id)}
-            className="text-black/40 hover:text-ink cursor-pointer shrink-0"
+            className="text-white/60 hover:text-white cursor-pointer shrink-0"
           >
-            <X size={13} strokeWidth={1.5} />
+            <X size={14} strokeWidth={1.75} />
           </button>
         </div>
       ))}

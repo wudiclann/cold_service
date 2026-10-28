@@ -1,38 +1,44 @@
 import type { ButtonHTMLAttributes } from "react";
-import { CornerMarks } from "./Blueprint";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "dark" | "secondary" | "ghost";
+type Size = "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  size?: Size;
   block?: boolean;
-  marks?: boolean;
 }
 
 const base =
-  "inline-flex items-center justify-center gap-1.5 cursor-pointer select-none font-heading font-semibold text-sm leading-tight rounded-none transition-colors disabled:opacity-45 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 cursor-pointer select-none whitespace-nowrap font-medium text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-bg border border-accent px-4 py-2 hover:bg-accent-600 active:bg-accent-700",
-  secondary:
-    "bg-transparent text-ink border border-divider px-4 py-2 hover:bg-black/5 active:bg-black/10",
-  ghost: "bg-transparent text-accent-700 border border-transparent px-2 py-1.5 hover:bg-accent-100",
+  primary: "bg-accent text-white hover:bg-[#0066b8] active:bg-[#005a9e]",
+  dark: "bg-ink text-white hover:bg-[#2e3234] active:bg-black",
+  secondary: "bg-surface text-ink border border-control hover:bg-raised active:bg-active",
+  ghost: "bg-transparent text-muted hover:bg-active hover:text-ink",
+};
+
+const sizes: Record<Size, string> = {
+  md: "h-8 px-3",
+  lg: "h-11 px-4 text-[15px]",
 };
 
 export function Button({
   variant = "secondary",
+  size = "md",
   block = false,
-  marks = false,
   className = "",
   children,
+  type = "button",
   ...rest
 }: ButtonProps) {
   return (
     <button
-      className={`relative ${base} ${variants[variant]} ${block ? "w-full" : ""} ${className}`}
+      type={type}
+      className={`${base} ${variants[variant]} ${sizes[size]} ${block ? "w-full" : ""} ${className}`}
       {...rest}
     >
-      {marks && <CornerMarks />}
       {children}
     </button>
   );
